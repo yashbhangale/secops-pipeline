@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 interface CarGameProps {
   isRunning: boolean;
@@ -10,6 +10,13 @@ interface CarGameProps {
 interface Vector2D {
   x: number;
   y: number;
+}
+
+interface Player {
+  position: Vector2D;
+  width: number;
+  height: number;
+  lane: number;
 }
 
 interface Obstacle extends Vector2D {
@@ -25,22 +32,23 @@ const OBSTACLE_COLOR = '#ef4444';
 
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 
-export const CarGame: React.FC<CarGameProps> = ({ isRunning, onScoreChange, onCrash, difficulty }) => {
+export const CarGame = (props: CarGameProps) => {
+  const { isRunning, onScoreChange, onCrash, difficulty } = props;
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const frameRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number | null>(null);
 
   const [canvasSize, setCanvasSize] = useState<{ width: number; height: number }>({ width: 360, height: 600 });
-  const [player, setPlayer] = useState<{ position: Vector2D; width: number; height: number; lane: number }>({
+  const [player, setPlayer] = useState<Player>({
     position: { x: 0, y: 0 },
     width: 40,
     height: 70,
     lane: 1,
   });
-  const [lanes, setLanes] = useState<number>(3);
+  const lanes = 3;
   const [obstacles, setObstacles] = useState<Obstacle[]>([]);
-  const [score, setScore] = useState<number>(0);
   const [roadOffset, setRoadOffset] = useState<number>(0);
+  const scoreRef = useRef<number>(0);
 
   // Difficulty tuning
   const difficultyConfig = {
@@ -72,8 +80,18 @@ export const CarGame: React.FC<CarGameProps> = ({ isRunning, onScoreChange, onCr
     const playerY = canvasSize.height - 90;
     const startLane = 1;
     const playerX = roadLeft + startLane * laneWidth + (laneWidth - player.width) / 2;
-    setPlayer((prev) => ({ ...prev, position: { x: playerX, y: playerY }, lane: startLane }));
-  }, [canvasSize.width, canvasSize.height, lanes]);
+    setPlayer((prev: Player) => ({ ...prev, position: { x: playerX, y: playerY }, lane: startLane }));
+  }, [canvasSize.width, canvasSize.height, lanes, player.width]);
+
+  const moveLane = useCallback((delta: number) => {
+    setPlayer((prev: Player) => {
+      const laneWidth = canvasSize.width * 0.2;
+      const roadLeft = (canvasSize.width - laneWidth * lanes) / 2;
+      const newLane = clamp(prev.lane + delta, 0, lanes - 1);
+      const newX = roadLeft + newLane * laneWidth + (laneWidth - prev.width) / 2;
+      return { ...prev, lane: newLane, position: { x: newX, y: prev.position.y } };
+    });
+  }, [canvasSize.width, lanes]);
 
   // Controls
   useEffect(() => {
@@ -84,17 +102,7 @@ export const CarGame: React.FC<CarGameProps> = ({ isRunning, onScoreChange, onCr
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [isRunning, player.lane, canvasSize.width, lanes]);
-
-  const moveLane = (delta: number) => {
-    setPlayer((prev) => {
-      const laneWidth = canvasSize.width * 0.2;
-      const roadLeft = (canvasSize.width - laneWidth * lanes) / 2;
-      const newLane = clamp(prev.lane + delta, 0, lanes - 1);
-      const newX = roadLeft + newLane * laneWidth + (laneWidth - prev.width) / 2;
-      return { ...prev, lane: newLane, position: { x: newX, y: prev.position.y } };
-    });
-  };
+  }, [isRunning, player.lane, canvasSize.width, lanes, moveLane]);
 
   // Spawn obstacles
   useEffect(() => {
@@ -108,7 +116,7 @@ export const CarGame: React.FC<CarGameProps> = ({ isRunning, onScoreChange, onCr
       const x = roadLeft + laneIndex * laneWidth + (laneWidth - width) / 2;
       const y = -height;
       const speed = baseSpeed + Math.random() * 60;
-      setObstacles((prev) => [...prev, { x, y, width, height, speed }]);
+      setObstacles((prev: Obstacle[]) => [...prev, { x, y, width, height, speed }]);
     }, spawnIntervalMs);
     return () => clearInterval(id);
   }, [isRunning, lanes, canvasSize.width, baseSpeed, spawnIntervalMs]);
@@ -136,7 +144,7 @@ export const CarGame: React.FC<CarGameProps> = ({ isRunning, onScoreChange, onCr
       ctx.strokeStyle = LINE_COLOR;
       ctx.lineWidth = 2;
       const laneWidth = roadWidth / lanes;
-      setRoadOffset((prev) => (prev + dtSec * baseSpeed * 0.8) % 40);
+      setRoadOffset((prev: number) => (prev + dtSec * baseSpeed * 0.8) % 40);
       const localOffset = roadOffset;
       for (let i = 1; i < lanes; i++) {
         const x = roadLeft + i * laneWidth;
@@ -150,10 +158,10 @@ export const CarGame: React.FC<CarGameProps> = ({ isRunning, onScoreChange, onCr
 
       // Update obstacles
       let crashed = false;
-      setObstacles((prev) => {
+      setObstacles((prev: Obstacle[]) => {
         const updated = prev
-          .map((o) => ({ ...o, y: o.y + o.speed * dtSec }))
-          .filter((o) => o.y < canvasSize.height + 100);
+          .map((o: Obstacle) => ({ ...o, y: o.y + o.speed * dtSec }))
+          .filter((o: Obstacle) => o.y < canvasSize.height + 100);
         // Collision detection
         for (const o of updated) {
           if (rectsOverlap(player.position.x, player.position.y, player.width, player.height, o.x, o.y, o.width, o.height)) {
@@ -166,7 +174,7 @@ export const CarGame: React.FC<CarGameProps> = ({ isRunning, onScoreChange, onCr
 
       // Draw obstacles
       ctx.fillStyle = OBSTACLE_COLOR;
-      obstacles.forEach((o) => {
+      obstacles.forEach((o: Obstacle) => {
         ctx.fillRect(o.x, o.y, o.width, o.height);
       });
 
@@ -176,11 +184,9 @@ export const CarGame: React.FC<CarGameProps> = ({ isRunning, onScoreChange, onCr
 
       // Update score
       if (isRunning && !crashed) {
-        setScore((s) => {
-          const next = s + Math.floor(dtSec * 100);
-          onScoreChange(next);
-          return next;
-        });
+        scoreRef.current += dtSec * 100;
+        const next = Math.floor(scoreRef.current);
+        onScoreChange(next);
       }
 
       if (crashed) {
@@ -212,7 +218,7 @@ export const CarGame: React.FC<CarGameProps> = ({ isRunning, onScoreChange, onCr
 
   // Reset score when game (re)starts
   useEffect(() => {
-    if (isRunning) setScore(0);
+    if (isRunning) scoreRef.current = 0;
   }, [isRunning]);
 
   // Helpers

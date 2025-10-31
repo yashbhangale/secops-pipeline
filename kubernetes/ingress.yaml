@@ -2,13 +2,24 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: tic-tac-toe-ingress
+  namespace: app
   annotations:
-    kubernetes.io/ingress.class: nginx
     # Add additional annotations as needed for your specific ingress controller
     # nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
+  ingressClassName: nginx
   rules:
-  - host: tic-tac-toe.example.com  # Replace with your actual domain
+  - host: 20api.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: tic-tac-toe
+            port:
+              number: 80
+  - host: www.20api.com
     http:
       paths:
       - path: /

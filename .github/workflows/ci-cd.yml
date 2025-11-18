@@ -213,7 +213,7 @@ jobs:
         run: |
           docker run --rm -t \
             -v ${{ github.workspace }}:/zap/wrk:rw \
-            owasp/zap2docker-stable \
+            ghcr.io/zaproxy/zaproxy:stable \
             zap-baseline.py -t http://20api.com/ -m 5 -r zap-report.html -w zap-warnings.txt
 
       - name: Upload ZAP HTML report

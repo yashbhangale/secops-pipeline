@@ -1,17 +1,7 @@
-# DevSecOps Pipeline Implementation for Tic Tac Toe Game
-
+# DevSecOps Pipeline Implementation 
 ![Screenshot 2025-03-04 at 7 16 48 PM](https://github.com/user-attachments/assets/7ed79f9c-9144-4870-accd-500085a15592)
 
-![image](https://github.com/user-attachments/assets/5b2813a5-f493-4665-8964-77359b5be93a)
 
-## Features
-
-- 🎮 Fully functional Tic Tac Toe game
-- 📊 Score tracking for X, O, and draws
-- 📜 Game history with timestamps
-- 🏆 Highlights winning combinations
-- 🔄 Reset game and statistics
-- 📱 Responsive design for all devices
 
 ## Technologies Used
 
